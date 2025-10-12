@@ -133,13 +133,12 @@ A **QEMU window** should appear, booting your OS and displaying the welcome mess
 ## 📂 Project Structure
 
 ```text
-simplios/
-├── src/
-│   ├── boot.s        # Assembly entry point and multiboot header
-│   └── kernel.c      # Main C kernel code
-├── linker.ld         # Linker script to structure the kernel binary
-├── Makefile          # Automates the build and run process
-└── README.md         # This file
+boot/
+└── boot.s
+kernel/
+└── kernel.c
+linker.ld
+Makefile
 ```
 
 ---
