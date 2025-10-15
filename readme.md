@@ -1,5 +1,78 @@
 # SimpliOS - A Simple, Educational Operating System
 
+SimpliOS is a tiny 32-bit x86 educational kernel that boots via Multiboot, sets up protected mode descriptor tables (GDT/IDT), remaps and handles hardware interrupts (timer and keyboard), and enables basic paging. It renders directly to the VGA text buffer and is designed to be easy to read and extend.
+
+## Features (current)
+- Flat 32-bit protected mode with a minimal GDT (null, kernel code, kernel data)
+- IDT with CPU exception ISRs and hardware IRQs (after PIC remap)
+- Programmable Interval Timer (PIT) at 100 Hz (shows periodic dots)
+- PS/2 keyboard input with US layout; printable ASCII output and Shift handling
+- Simple PMM stub (placeholder) and identity-mapped paging for the first 4 MiB
+- Minimal boot assembly and a clear C entrypoint
+
+## Repository layout
+```
+boot/               # Multiboot entry and assembly helpers (lgdt/lidt/ISRs)
+kernel/             # Kernel C code (GDT/IDT/IRQ, PMM stub, paging, VGA)
+linker.ld           # Linker script (places kernel at 1 MiB)
+Makefile            # Build ISO with i686-elf toolchain and GRUB
+```
+
+Key files to explore:
+- `boot/boot.s`: Multiboot header, stack, calls `kernel_main(magic, info)`
+- `kernel/gdt.c,h` and `boot/gdt_flush.s`: Flat segmentation descriptors, `lgdt`
+- `kernel/idt.c,h` and `boot/idt_flush.s`: Interrupt descriptor table, `lidt`
+- `boot/isr_stubs.s`: CPU exception and IRQ stubs that route to C handlers
+- `kernel/irq.c,h` and `kernel/io.h`: PIC remap, PIT init, keyboard handler
+- `kernel/paging.c`: Identity maps first 4 MiB and enables paging
+- `kernel/kernel.c`: VGA text output, initialization sequence, GDT/IDT dump
+
+## Quick start
+You need the cross toolchain and GRUB tools. The easiest path on Windows is WSL.
+
+### Dependencies
+- i686-elf-gcc, i686-elf-ld, i686-elf-objcopy
+- grub-mkrescue, xorriso
+- qemu-system-i386
+
+### Build and run
+```bash
+make clean
+make
+make run
+```
+
+This produces `build/simplios.iso` and boots it in QEMU.
+
+### Expected output
+- Welcome banner and init messages
+- GDT dump (base/limit and entries 0..2)
+- Periodic dots (timer)
+- Characters you type (keyboard), with Shift support; Backspace edits
+
+If you see no keyboard output, ensure the QEMU window has focus.
+
+## Milestones
+- Milestone 1: Bootloader and basic kernel initialization
+- Milestone 2 (current): Interrupts and Memory Management
+  - GDT/IDT setup
+  - Basic IRQ handlers (timer/keyboard)
+  - PMM stub and simple paging
+- Future: Real PMM bitmap, higher-half kernel, user mode, syscalls, filesystem
+
+## Documentation
+See the `docs/` folder for deeper dives:
+- `docs/architecture.md` – high-level architecture and boot flow
+- `docs/build.md` – toolchain setup, build, run, debugging tips
+- `docs/interrupts.md` – GDT/IDT, ISRs/IRQs, PIC remap, PIT/keyboard
+- `docs/memory.md` – PMM design notes and paging overview
+- `docs/keyboard.md` – PS/2 scancode set and ASCII mapping
+- `docs/roadmap.md` – planned work and stretch goals
+- `docs/contributing.md` – how to contribute
+
+## License
+Educational use encouraged. See `docs/contributing.md` for guidance.
+
 Welcome to **SimpliOS**! This project is an educational 32-bit monolithic kernel built from the ground up to demonstrate core operating system concepts. It is designed as a learning tool for those interested in low-level systems programming.
 
 This guide provides all the necessary steps to set up the development environment, build the cross-compiler, and run the operating system in the QEMU emulator.

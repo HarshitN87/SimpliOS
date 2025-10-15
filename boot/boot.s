@@ -22,9 +22,25 @@ stack_top:
 .type _start, @function
 _start:
     mov $stack_top, %esp
+    # multiboot passes: eax=MAGIC, ebx=MB_INFO
+    push %ebx
+    push %eax
     call kernel_main
+    add $8, %esp
     cli
 _halt:
     hlt
     jmp _halt
 .size _start, . - _start
+
+.global enable_interrupts
+.type enable_interrupts, @function
+enable_interrupts:
+	sti
+	ret
+
+.global halt_cpu
+.type halt_cpu, @function
+halt_cpu:
+	hlt
+	ret

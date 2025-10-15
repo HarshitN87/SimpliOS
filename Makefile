@@ -10,10 +10,10 @@ LDFLAGS = -T linker.ld -nostdlib
 BUILD_DIR = build
 SRC_DIR = .
 BOOT_SRC = boot/boot.s
-KERNEL_SRC = kernel/kernel.c
+KERNEL_SRC = kernel/kernel.c kernel/gdt.c kernel/idt.c kernel/irq.c kernel/pmm.c kernel/paging.c
 
-BOOT_OBJ = $(BUILD_DIR)/boot.o
-KERNEL_OBJ = $(BUILD_DIR)/kernel.o
+BOOT_OBJ = $(BUILD_DIR)/boot.o $(BUILD_DIR)/gdt_flush.o $(BUILD_DIR)/idt_flush.o $(BUILD_DIR)/isr_stubs.o
+KERNEL_OBJ = $(BUILD_DIR)/kernel.o $(BUILD_DIR)/gdt.o $(BUILD_DIR)/idt.o $(BUILD_DIR)/irq.o $(BUILD_DIR)/pmm.o $(BUILD_DIR)/paging.o
 KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 ISO_DIR = $(BUILD_DIR)/isodir
 ISO_FILE = $(BUILD_DIR)/simplios.iso
@@ -26,8 +26,32 @@ $(BUILD_DIR):
 $(BOOT_OBJ): $(BOOT_SRC) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(KERNEL_OBJ): $(KERNEL_SRC) | $(BUILD_DIR)
+$(BUILD_DIR)/gdt_flush.o: boot/gdt_flush.s | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/idt_flush.o: boot/idt_flush.s | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/isr_stubs.o: boot/isr_stubs.s | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/kernel.o: kernel/kernel.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/gdt.o: kernel/gdt.c kernel/gdt.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/gdt.c -o $@
+
+$(BUILD_DIR)/idt.o: kernel/idt.c kernel/idt.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/idt.c -o $@
+
+$(BUILD_DIR)/irq.o: kernel/irq.c kernel/irq.h kernel/io.h kernel/idt.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/irq.c -o $@
+
+$(BUILD_DIR)/pmm.o: kernel/pmm.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/pmm.c -o $@
+
+$(BUILD_DIR)/paging.o: kernel/paging.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/paging.c -o $@
 
 $(KERNEL_ELF): $(BOOT_OBJ) $(KERNEL_OBJ)
 	$(LD) $(LDFLAGS) -o $@ $^

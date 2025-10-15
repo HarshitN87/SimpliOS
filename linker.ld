@@ -26,4 +26,7 @@ SECTIONS
         *(COMMON)
         *(.bss)
     }
+
+    kernel_start = ADDR(.text);
+    kernel_end = .;
 }
