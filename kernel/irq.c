@@ -74,12 +74,11 @@ void pit_init(unsigned int hz) {
 
 extern void term_print(const char*);
 extern void term_putc(char c);
+extern void scheduler_tick(void);
 
 void pit_handler(void) {
 	++tick;
-	if ((tick % 100) == 0) {
-		term_print(".");
-	}
+	scheduler_tick(); // Call scheduler on each timer tick
 }
 
 // Keyboard
@@ -124,7 +123,9 @@ void keyboard_handler(void) {
 	if (sc == 0x2A || sc == 0x36) { shift_down = 1; return; } // shift down
 	char ch = shift_down ? keymap_shift[sc] : keymap_unshift[sc];
 	if (ch) {
-		term_putc(ch);
+		// Route input to shell
+		extern void shell_process_char(char c);
+		shell_process_char(ch);
 	}
 }
 

@@ -69,6 +69,17 @@ void pmm_init(unsigned int mb_magic, unsigned int mb_info);
 void paging_init(void);
 void gdt_dump(void);
 
+// Forward decls for scheduler
+void scheduler_init(void);
+void scheduler_add_process(const char* name, uint32_t priority);
+void scheduler_tick(void);
+void scheduler_print_status(void);
+
+// Forward decls for ramdisk and shell
+void ramdisk_init(void);
+void ramdisk_create_samples(void);
+void shell_init(void);
+
 // C-level ISR handler to print an error message
 static const char* exception_messages[32] = {
     "Division By Zero",
@@ -141,7 +152,23 @@ void kernel_main(unsigned int mb_magic, unsigned int mb_info) {
     keyboard_init();
 
     term_print("GDT/IDT, IRQs, PMM (stub) and paging initialized.\n");
-    term_print("Timer and keyboard IRQs enabled. Press keys to see scancodes.\n");
+    
+    // Initialize ramdisk filesystem
+    ramdisk_init();
+    ramdisk_create_samples();
+    
+    // Initialize scheduler and add some hardcoded tasks
+    scheduler_init();
+    scheduler_add_process("Idle", 0);
+    scheduler_add_process("Counter", 1);
+    scheduler_add_process("Printer", 2);
+    
+    // Initialize shell
+    shell_init();
+    
+    term_print("Scheduler initialized with 3 tasks.\n");
+    term_print("Ramdisk filesystem initialized.\n");
+    term_print("Shell ready. Type 'help' for available commands.\n");
 
     extern void enable_interrupts();
     extern void halt_cpu();
