@@ -27,5 +27,23 @@
 - VGA text-mode renderer in `kernel/kernel.c` draws directly to 0xB8000.
 - Minimal terminal with newline and backspace handling.
 
+## Ramdisk filesystem
+- `kernel/ramdisk.c` implements an in-memory block with fixed-size metadata entries and contiguous data storage.
+- Each `file_entry_t` tracks filename, size, timestamps, file type, permissions, and data offset; free slots are zeroed at boot.
+- Helper routines provide `ls`, `cat/read`, `write`, `create`, and `delete` semantics used by the shell.
+- `ramdisk_create_samples()` seeds a few demo files so commands immediately have something to inspect.
+
+## Shell
+- `kernel/shell.c` exposes a `simplios>` prompt with simple line editing (printable ASCII filter, backspace, newline).
+- Commands are defined in a table and dispatched via string compares; current set: `help`, `clear`, `ls`, `cat`, `echo`, `create`, `delete`, `write`, `read`, `status`.
+- Command handlers call into ramdisk helpers, the terminal, or the scheduler to display information.
+- The shell state machine keeps track of the current line buffer, cursor, and echo settings so future extensions can hook into it.
+
+## Scheduler
+- `kernel/scheduler.c` provides a round-robin scheduler with a circular ready queue backed by `pcb_t` entries from `kernel/pcb.c`.
+- Each PCB tracks PID, name, priority, runtime stats, and saved register context to allow future task switching.
+- `scheduler_tick()` consumes PIT interrupts, decrements a quantum counter, and calls `scheduler_yield()` when a task's slice expires.
+- Demo tasks (`task_idle`, `task_counter`, `task_printer`) show periodic log messages so you can see scheduling activity before user programs exist.
+
 ## Linker
 - `linker.ld` places sections at 1 MiB and exports `kernel_start/end` symbols for future PMM use.

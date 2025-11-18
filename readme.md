@@ -3,12 +3,14 @@
 SimpliOS is a tiny 32-bit x86 educational kernel that boots via Multiboot, sets up protected mode descriptor tables (GDT/IDT), remaps and handles hardware interrupts (timer and keyboard), and enables basic paging. It renders directly to the VGA text buffer and is designed to be easy to read and extend.
 
 ## Features (current)
-- Flat 32-bit protected mode with a minimal GDT (null, kernel code, kernel data)
-- IDT with CPU exception ISRs and hardware IRQs (after PIC remap)
-- Programmable Interval Timer (PIT) at 100 Hz (shows periodic dots)
-- PS/2 keyboard input with US layout; printable ASCII output and Shift handling
-- Simple PMM stub (placeholder) and identity-mapped paging for the first 4 MiB
-- Minimal boot assembly and a clear C entrypoint
+- Multiboot-compliant boot path with a flat 32-bit GDT (null, kernel code, kernel data) and IDT coverage for CPU exceptions plus PIC-remapped IRQs
+- Hardware drivers for PIT (100 Hz heartbeat) and PS/2 keyboard with printable ASCII, Shift state tracking, newline/backspace editing, and prompt rendering
+- VGA text console that writes directly to 0xB8000, clears or rewinds when the buffer fills, and is reused by every subsystem
+- Physical memory manager stub and identity-mapped paging over the first 4 MiB to validate paging enablement
+- In-memory ramdisk filesystem with fixed metadata, per-file attributes, sample files, and helpers for listing, reading, writing, creating, and deleting
+- Interactive shell with built-in commands (`help`, `clear`, `ls`, `cat`, `echo`, `create`, `delete`, `write`, `read`, `status`) and simple line editing
+- Round-robin scheduler with PCBs, ready queue management, periodic tick accounting, and sample Idle/Counter/Printer tasks to visualize scheduling
+- Minimal boot assembly and C entrypoint that wires every subsystem together
 
 ## Repository layout
 ```
@@ -45,20 +47,25 @@ make run
 This produces `build/simplios.iso` and boots it in QEMU.
 
 ### Expected output
-- Welcome banner and init messages
-- GDT dump (base/limit and entries 0..2)
-- Periodic dots (timer)
-- Characters you type (keyboard), with Shift support; Backspace edits
+- Welcome banner, init log, and GDT dump (base/limit and entries 0..2)
+- Ramdisk + scheduler init logs showing sample tasks
+- Periodic dots from the timer, plus optional task trace messages when the demo processes run
+- Characters you type echoed by the keyboard driver and shell prompt (`simplios> `)
+- If you see no keyboard output, ensure the QEMU window has focus.
 
-If you see no keyboard output, ensure the QEMU window has focus.
+### Shell overview
+- Prompt: `simplios> `
+- Commands accept space-delimited arguments; `Backspace` edits the current line.
+- Available commands:
+  - `help`: list commands
+  - `clear`: clear the VGA console
+  - `ls`: show files stored in the ramdisk
+  - `cat <file>` / `read <file>`: print file contents
+  - `create <file>` / `delete <file>`: manage files
+  - `write <file> <text...>`: overwrite a file with the provided text
+  - `echo <text...>`: print arguments back to the terminal
+  - `status`: display ramdisk usage plus scheduler tick/process state
 
-## Milestones
-- Milestone 1: Bootloader and basic kernel initialization
-- Milestone 2 (current): Interrupts and Memory Management
-  - GDT/IDT setup
-  - Basic IRQ handlers (timer/keyboard)
-  - PMM stub and simple paging
-- Future: Real PMM bitmap, higher-half kernel, user mode, syscalls, filesystem
 
 ## Documentation
 See the `docs/` folder for deeper dives:
