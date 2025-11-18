@@ -31,9 +31,10 @@ void scheduler_yield(void);
 pcb_t* scheduler_get_current_process(void);
 void scheduler_print_status(void);
 
-// Process entry points (simple tasks)
-void task_idle(void);
-void task_counter(void);
-void task_printer(void);
+// Process entry points (OS-style processes)
+void task_kernel_init(void);
+void task_vfs(void);
+void task_shell(void);
+void task_syslog(void);
 
 #endif // SCHEDULER_H

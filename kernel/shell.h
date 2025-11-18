@@ -7,6 +7,7 @@
 #define MAX_COMMAND_LEN 128
 #define MAX_ARGS 8
 #define MAX_ARG_LEN 32
+#define MAX_HISTORY 32
 
 // Command structure
 typedef struct {
@@ -19,8 +20,10 @@ typedef struct {
 typedef struct {
     char current_line[MAX_COMMAND_LEN];
     uint32_t line_pos;
-    uint32_t history_pos;
-    uint8_t cursor_pos;
+    uint32_t cursor_pos;  // Cursor position in current line
+    uint32_t history_pos;  // Current position in history (0 = no history, 1 = most recent)
+    uint32_t history_count;  // Number of commands in history
+    char history[MAX_HISTORY][MAX_COMMAND_LEN];  // Command history
     uint8_t echo_enabled;
 } shell_state_t;
 
@@ -30,6 +33,7 @@ extern shell_state_t g_shell;
 // Function declarations
 void shell_init(void);
 void shell_process_char(char c);
+void shell_process_arrow_key(uint8_t arrow_type);  // 0=Up, 1=Down, 2=Left, 3=Right
 void shell_execute_command(const char* line);
 void shell_prompt(void);
 void shell_clear_line(void);
@@ -45,6 +49,9 @@ int cmd_delete(int argc, char* argv[]);
 int cmd_write(int argc, char* argv[]);
 int cmd_read(int argc, char* argv[]);
 int cmd_status(int argc, char* argv[]);
+int cmd_ps(int argc, char* argv[]);
+int cmd_uptime(int argc, char* argv[]);
+int cmd_setcolor(int argc, char* argv[]);
 
 // Utility functions
 void shell_print_prompt(void);

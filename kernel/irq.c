@@ -72,6 +72,11 @@ void pit_init(unsigned int hz) {
 	outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
 }
 
+// Get current tick count
+uint32_t pit_get_ticks(void) {
+	return tick;
+}
+
 extern void term_print(const char*);
 extern void term_putc(char c);
 extern void scheduler_tick(void);
@@ -106,13 +111,52 @@ static const char keymap_shift[128] = {
 };
 
 static int shift_down = 0;
+static int escape_sequence = 0;  // Track E0 escape sequences for arrow keys
 
 void keyboard_init(void) {
 	shift_down = 0;
+	escape_sequence = 0;
 }
 
 void keyboard_handler(void) {
 	uint8_t sc = inb(0x60);
+	
+	// Check for escape sequence prefix (0xE0)
+	if (sc == 0xE0) {
+		escape_sequence = 1;
+		return;
+	}
+	
+	// Handle arrow keys (after E0 prefix)
+	if (escape_sequence) {
+		escape_sequence = 0;
+		
+		if (sc & 0x80) {
+			// Key release - ignore for arrow keys
+			return;
+		}
+		
+		// Arrow key make codes
+		extern void shell_process_arrow_key(uint8_t arrow_type);
+		switch (sc) {
+			case 0x48: // Up arrow
+				shell_process_arrow_key(0);
+				return;
+			case 0x50: // Down arrow
+				shell_process_arrow_key(1);
+				return;
+			case 0x4B: // Left arrow
+				shell_process_arrow_key(2);
+				return;
+			case 0x4D: // Right arrow
+				shell_process_arrow_key(3);
+				return;
+			default:
+				// Other E0 sequences - ignore for now
+				return;
+		}
+	}
+	
 	if (sc & 0x80) {
 		// key release
 		uint8_t make = sc & 0x7F;

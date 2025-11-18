@@ -9,6 +9,7 @@ SimpliOS is a tiny 32-bit x86 educational kernel that boots via Multiboot, sets 
 - Physical memory manager stub and identity-mapped paging over the first 4 MiB to validate paging enablement
 - In-memory ramdisk filesystem with fixed metadata, per-file attributes, sample files, and helpers for listing, reading, writing, creating, and deleting
 - Interactive shell with built-in commands (`help`, `clear`, `ls`, `cat`, `echo`, `create`, `delete`, `write`, `read`, `status`) and simple line editing
+- Colorized VGA console with a cyan prompt, green/yellow status messages, red errors, and a `setcolor` command to customize default colors
 - Round-robin scheduler with PCBs, ready queue management, periodic tick accounting, and sample Idle/Counter/Printer tasks to visualize scheduling
 - Minimal boot assembly and C entrypoint that wires every subsystem together
 
@@ -51,6 +52,7 @@ This produces `build/simplios.iso` and boots it in QEMU.
 - Ramdisk + scheduler init logs showing sample tasks
 - Periodic dots from the timer, plus optional task trace messages when the demo processes run
 - Characters you type echoed by the keyboard driver and shell prompt (`simplios> `)
+- Colored prompt, info (green) and warning (yellow) messages, plus red error text from the shell
 - If you see no keyboard output, ensure the QEMU window has focus.
 
 ### Shell overview
@@ -65,6 +67,7 @@ This produces `build/simplios.iso` and boots it in QEMU.
   - `write <file> <text...>`: overwrite a file with the provided text
   - `echo <text...>`: print arguments back to the terminal
   - `status`: display ramdisk usage plus scheduler tick/process state
+  - `setcolor <fg> [bg]`: change default console colors using named palette values
 
 
 ## Documentation

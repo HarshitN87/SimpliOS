@@ -235,29 +235,49 @@ void scheduler_print_status(void) {
     term_print("========================\n");
 }
 
-// Simple task implementations
-void task_idle(void) {
-    static uint32_t counter = 0;
-    counter++;
-    // This is a placeholder for an idle task
-}
-
-void task_counter(void) {
-    static uint32_t counter = 0;
-    counter++;
+// Simple task implementations - OS-style processes
+void task_kernel_init(void) {
+    static uint32_t init_cycle = 0;
+    init_cycle++;
     
-    if (counter % 100 == 0) {
-        term_print("Counter task: ");
-        print_number(counter);
-        term_print("\n");
+    // Simulate kernel initialization/maintenance tasks
+    if (init_cycle % 200 == 0) {
+        // Periodic kernel maintenance
+        // In a real OS, this would handle cleanup, memory defrag, etc.
     }
 }
 
-void task_printer(void) {
-    static uint32_t counter = 0;
-    counter++;
+void task_vfs(void) {
+    static uint32_t vfs_ops = 0;
+    vfs_ops++;
     
-    if (counter % 50 == 0) {
-        term_print("Printer task running...\n");
+    // Simulate virtual filesystem daemon
+    // In a real OS, this would handle file system operations, caching, etc.
+    if (vfs_ops % 150 == 0) {
+        // Periodic filesystem maintenance
+        // Could flush buffers, check disk health, etc.
+    }
+}
+
+void task_shell(void) {
+    static uint32_t shell_ticks = 0;
+    shell_ticks++;
+    
+    // Simulate shell process
+    // In a real OS, the shell would be a separate process
+    // This represents the shell's background maintenance
+    if (shell_ticks % 300 == 0) {
+        // Periodic shell maintenance (history cleanup, etc.)
+    }
+}
+
+void task_syslog(void) {
+    static uint32_t log_entries = 0;
+    log_entries++;
+    
+    // Simulate system logging daemon
+    // In a real OS, this would handle log rotation, buffering, etc.
+    if (log_entries % 250 == 0) {
+        // Periodic log maintenance
     }
 }

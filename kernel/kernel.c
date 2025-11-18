@@ -9,18 +9,20 @@ const int VGA_ROWS = 25;
 // We'll keep track of the cursor position.
 int term_col = 0;
 int term_row = 0;
-unsigned char term_color = 0x0F; // White on black
+uint8_t term_color = 0x0F; // White on black
+uint8_t term_default_color = 0x0F;
 
 // Clears the terminal screen.
 void term_clear() {
     for (int r = 0; r < VGA_ROWS; r++) {
         for (int c = 0; c < VGA_COLS; c++) {
             const int index = r * VGA_COLS + c;
-            vga_buffer[index] = ((unsigned short)term_color << 8) | ' ';
+            vga_buffer[index] = ((unsigned short)term_default_color << 8) | ' ';
         }
     }
     term_col = 0;
     term_row = 0;
+    term_color = term_default_color;
 }
 
 // Prints a single character to the screen.
@@ -56,6 +58,75 @@ void term_putc(char c) {
 void term_print(const char* str) {
     for (int i = 0; str[i] != '\0'; i++) {
         term_putc(str[i]);
+    }
+}
+
+// Terminal color helpers
+uint8_t term_get_color(void) {
+    return term_color;
+}
+
+void term_set_color(uint8_t color) {
+    term_color = color;
+}
+
+uint8_t term_get_default_color(void) {
+    return term_default_color;
+}
+
+void term_set_default_color(uint8_t color) {
+    term_default_color = color;
+    term_color = color;
+}
+
+void term_reset_color(void) {
+    term_color = term_default_color;
+}
+
+// Move cursor left without erasing
+void term_move_left(void) {
+    if (term_col > 0) {
+        term_col--;
+    }
+}
+
+// Move cursor right without printing
+void term_move_right(void) {
+    if (term_col < VGA_COLS - 1) {
+        term_col++;
+    }
+}
+
+// Clear from cursor to end of line
+void term_clear_to_eol(void) {
+    int start_col = term_col;
+    for (int c = start_col; c < VGA_COLS; c++) {
+        const int index = term_row * VGA_COLS + c;
+        vga_buffer[index] = ((unsigned short)term_color << 8) | ' ';
+    }
+}
+
+// Get current cursor column (for shell use)
+int term_get_col(void) {
+    return term_col;
+}
+
+// Set cursor column (for shell use)
+void term_set_col(int col) {
+    if (col >= 0 && col < VGA_COLS) {
+        term_col = col;
+    }
+}
+
+// Get current cursor row (for shell use)
+int term_get_row(void) {
+    return term_row;
+}
+
+// Set cursor row (for shell use)
+void term_set_row(int row) {
+    if (row >= 0 && row < VGA_ROWS) {
+        term_row = row;
     }
 }
 
@@ -157,16 +228,17 @@ void kernel_main(unsigned int mb_magic, unsigned int mb_info) {
     ramdisk_init();
     ramdisk_create_samples();
     
-    // Initialize scheduler and add some hardcoded tasks
+    // Initialize scheduler and add OS-style processes
     scheduler_init();
-    scheduler_add_process("Idle", 0);
-    scheduler_add_process("Counter", 1);
-    scheduler_add_process("Printer", 2);
+    scheduler_add_process("kernel_init", 0);  // System initialization (highest priority)
+    scheduler_add_process("vfs", 1);          // Virtual filesystem daemon
+    scheduler_add_process("shell", 2);        // Shell process
+    scheduler_add_process("syslog", 3);       // System logging daemon
     
     // Initialize shell
     shell_init();
     
-    term_print("Scheduler initialized with 3 tasks.\n");
+    term_print("Scheduler initialized with 4 processes.\n");
     term_print("Ramdisk filesystem initialized.\n");
     term_print("Shell ready. Type 'help' for available commands.\n");
 
