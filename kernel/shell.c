@@ -164,6 +164,8 @@ int shell_parse_args(const char* line, char* argv[], int max_args) {
 // Execute a command
 void shell_execute_command(const char* line) {
     if (!line || strlen(line) == 0) {
+        g_shell.line_pos = 0;
+        g_shell.current_line[0] = '\0';
         shell_print_prompt();
         return;
     }
@@ -198,6 +200,8 @@ void shell_execute_command(const char* line) {
         term_print("\nType 'help' for available commands.\n");
     }
     
+    g_shell.line_pos = 0;
+    g_shell.current_line[0] = '\0';
     shell_print_prompt();
 }
 
