@@ -38,6 +38,10 @@ void shell_execute_command(const char* line);
 void shell_prompt(void);
 void shell_clear_line(void);
 
+// Input redirection
+typedef void (*input_handler_t)(char c, uint8_t arrow);
+void shell_set_input_handler(input_handler_t handler);
+
 // Command handlers
 int cmd_help(int argc, char* argv[]);
 int cmd_clear(int argc, char* argv[]);
@@ -52,6 +56,7 @@ int cmd_status(int argc, char* argv[]);
 int cmd_ps(int argc, char* argv[]);
 int cmd_uptime(int argc, char* argv[]);
 int cmd_setcolor(int argc, char* argv[]);
+int cmd_calc(int argc, char* argv[]);
 
 // Utility functions
 void shell_print_prompt(void);

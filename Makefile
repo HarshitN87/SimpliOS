@@ -10,10 +10,10 @@ LDFLAGS = -T linker.ld -nostdlib
 BUILD_DIR = build
 SRC_DIR = .
 BOOT_SRC = boot/boot.s
-KERNEL_SRC = kernel/kernel.c kernel/gdt.c kernel/idt.c kernel/irq.c kernel/pmm.c kernel/paging.c kernel/pcb.c kernel/scheduler.c kernel/ramdisk.c kernel/shell.c
+KERNEL_SRC = kernel/kernel.c kernel/gdt.c kernel/idt.c kernel/irq.c kernel/pmm.c kernel/paging.c kernel/pcb.c kernel/scheduler.c kernel/ramdisk.c kernel/shell.c kernel/breakout.c
 
 BOOT_OBJ = $(BUILD_DIR)/boot.o $(BUILD_DIR)/gdt_flush.o $(BUILD_DIR)/idt_flush.o $(BUILD_DIR)/isr_stubs.o
-KERNEL_OBJ = $(BUILD_DIR)/kernel.o $(BUILD_DIR)/gdt.o $(BUILD_DIR)/idt.o $(BUILD_DIR)/irq.o $(BUILD_DIR)/pmm.o $(BUILD_DIR)/paging.o $(BUILD_DIR)/pcb.o $(BUILD_DIR)/scheduler.o $(BUILD_DIR)/ramdisk.o $(BUILD_DIR)/shell.o
+KERNEL_OBJ = $(BUILD_DIR)/kernel.o $(BUILD_DIR)/gdt.o $(BUILD_DIR)/idt.o $(BUILD_DIR)/irq.o $(BUILD_DIR)/pmm.o $(BUILD_DIR)/paging.o $(BUILD_DIR)/pcb.o $(BUILD_DIR)/scheduler.o $(BUILD_DIR)/ramdisk.o $(BUILD_DIR)/shell.o $(BUILD_DIR)/breakout.o
 KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 ISO_DIR = $(BUILD_DIR)/isodir
 ISO_FILE = $(BUILD_DIR)/simplios.iso
@@ -64,6 +64,9 @@ $(BUILD_DIR)/ramdisk.o: kernel/ramdisk.c kernel/ramdisk.h | $(BUILD_DIR)
 
 $(BUILD_DIR)/shell.o: kernel/shell.c kernel/shell.h kernel/ramdisk.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c kernel/shell.c -o $@
+
+$(BUILD_DIR)/breakout.o: kernel/breakout.c kernel/breakout.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c kernel/breakout.c -o $@
 
 $(KERNEL_ELF): $(BOOT_OBJ) $(KERNEL_OBJ)
 	$(LD) $(LDFLAGS) -o $@ $^

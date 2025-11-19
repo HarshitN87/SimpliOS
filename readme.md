@@ -8,15 +8,17 @@ SimpliOS is a tiny 32-bit x86 educational kernel that boots via Multiboot, sets 
 - VGA text console that writes directly to 0xB8000, clears or rewinds when the buffer fills, and is reused by every subsystem
 - Physical memory manager stub and identity-mapped paging over the first 4 MiB to validate paging enablement
 - In-memory ramdisk filesystem with fixed metadata, per-file attributes, sample files, and helpers for listing, reading, writing, creating, and deleting
-- Interactive shell with built-in commands (`help`, `clear`, `ls`, `cat`, `echo`, `create`, `delete`, `write`, `read`, `status`) and simple line editing
+- Interactive shell with built-in commands (`help`, `clear`, `ls`, `cat`, `echo`, `create`, `delete`, `write`, `read`, `status`, `calc`, `breakout`) and simple line editing
 - Colorized VGA console with a cyan prompt, green/yellow status messages, red errors, and a `setcolor` command to customize default colors
+- **Breakout Game**: A fully functional Breakout game with 3 lives, scoring, and adjustable speed.
+- **Calculator**: A simple command-line calculator supporting basic arithmetic operations.
 - Round-robin scheduler with PCBs, ready queue management, periodic tick accounting, and sample Idle/Counter/Printer tasks to visualize scheduling
 - Minimal boot assembly and C entrypoint that wires every subsystem together
 
 ## Repository layout
 ```
 boot/               # Multiboot entry and assembly helpers (lgdt/lidt/ISRs)
-kernel/             # Kernel C code (GDT/IDT/IRQ, PMM stub, paging, VGA)
+kernel/             # Kernel C code (GDT/IDT/IRQ, PMM stub, paging, VGA, Breakout)
 linker.ld           # Linker script (places kernel at 1 MiB)
 Makefile            # Build ISO with i686-elf toolchain and GRUB
 ```
@@ -29,6 +31,7 @@ Key files to explore:
 - `kernel/irq.c,h` and `kernel/io.h`: PIC remap, PIT init, keyboard handler
 - `kernel/paging.c`: Identity maps first 4 MiB and enables paging
 - `kernel/kernel.c`: VGA text output, initialization sequence, GDT/IDT dump
+- `kernel/breakout.c`: Breakout game implementation and game loop hook
 
 ## Quick start
 You need the cross toolchain and GRUB tools. The easiest path on Windows is WSL.
@@ -68,6 +71,8 @@ This produces `build/simplios.iso` and boots it in QEMU.
   - `echo <text...>`: print arguments back to the terminal
   - `status`: display ramdisk usage plus scheduler tick/process state
   - `setcolor <fg> [bg]`: change default console colors using named palette values
+  - `calc <num1> <op> <num2>`: simple calculator (+, -, *, /)
+  - `breakout`: play the Breakout game (controls: Left/Right arrows, Space to start, Q to quit)
 
 
 ## Documentation

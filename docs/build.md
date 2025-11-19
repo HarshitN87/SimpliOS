@@ -13,6 +13,9 @@ On Windows, use WSL for easiest setup or install MSYS2/Chocolatey equivalents.
 ```bash
 make clean
 make
+# Or on Windows with WSL:
+wsl make
+wsl make run
 make run
 ```
 

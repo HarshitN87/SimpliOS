@@ -3,6 +3,7 @@
 #include "scheduler.h"
 #include "pcb.h"
 #include "irq.h"
+#include "breakout.h"
 #include <stddef.h>
 
 // VGA color codes
@@ -55,6 +56,22 @@ static int strlen(const char* s) {
     return len;
 }
 
+static int atoi(const char* s) {
+    int res = 0;
+    int sign = 1;
+    int i = 0;
+    if (s[0] == '-') {
+        sign = -1;
+        i++;
+    }
+    for (; s[i] != '\0'; ++i) {
+        if (s[i] >= '0' && s[i] <= '9') {
+            res = res * 10 + s[i] - '0';
+        }
+    }
+    return sign * res;
+}
+
 static char tolower_char(char c) {
     if (c >= 'A' && c <= 'Z') {
         return c + 32;
@@ -87,6 +104,11 @@ static int strcmp(const char* s1, const char* s2) {
 
 // Global shell state
 shell_state_t g_shell;
+static input_handler_t g_input_handler = NULL;
+
+void shell_set_input_handler(input_handler_t handler) {
+    g_input_handler = handler;
+}
 
 // Color helpers
 static uint8_t shell_color_push(uint8_t color) {
@@ -179,7 +201,9 @@ static const shell_command_t commands[] = {
     {"status", "Show system status", cmd_status},
     {"ps", "List processes (PID | Name | State | CPU ticks)", cmd_ps},
     {"uptime", "Show system uptime", cmd_uptime},
-    {"setcolor", "Set default console colors", cmd_setcolor}
+    {"setcolor", "Set default console colors", cmd_setcolor},
+    {"breakout", "Play Breakout game", cmd_breakout},
+    {"calc", "Simple calculator", cmd_calc}
 };
 
 #define NUM_COMMANDS (sizeof(commands) / sizeof(commands[0]))
@@ -288,6 +312,11 @@ void shell_clear_line(void) {
 void shell_process_arrow_key(uint8_t arrow_type) {
     // 0=Up, 1=Down, 2=Left, 3=Right
     
+    if (g_input_handler) {
+        g_input_handler(0, arrow_type);
+        return;
+    }
+
     if (arrow_type == 0) {  // Up arrow - go to previous history
         if (g_shell.history_count == 0) return;
         
@@ -348,6 +377,11 @@ void shell_process_char(char c) {
         return;
     }
     
+    if (g_input_handler) {
+        g_input_handler(c, 255); // 255 indicates no arrow key
+        return;
+    }
+
     switch (c) {
         case '\n':
         case '\r':
@@ -458,7 +492,7 @@ void shell_execute_command(const char* line) {
     
     // Find and execute command
     int found = 0;
-    for (int i = 0; i < NUM_COMMANDS; i++) {
+    for (size_t i = 0; i < NUM_COMMANDS; i++) {
         if (strcmp(commands[i].name, argv[0]) == 0) {
             commands[i].handler(argc, argv_ptrs);
             found = 1;
@@ -486,14 +520,86 @@ void shell_execute_command(const char* line) {
 int cmd_help(int argc, char* argv[]) {
     (void)argc; (void)argv; // Suppress unused parameter warnings
     
-    shell_print_warning("Available commands:\n");
-    for (int i = 0; i < NUM_COMMANDS; i++) {
+    term_print("\n");
+    uint8_t prev = shell_color_push(SHELL_COLOR_WARNING);
+    term_print("  === SimpliOS Help ===\n");
+    term_print("  ---------------------\n");
+    shell_color_pop(prev);
+    
+    for (size_t i = 0; i < NUM_COMMANDS; i++) {
         term_print("  ");
+        prev = shell_color_push(SHELL_COLOR_INFO);
         term_print(commands[i].name);
-        term_print(" - ");
+        shell_color_pop(prev);
+        
+        // Padding
+        int len = strlen(commands[i].name);
+        for (int j = len; j < 12; j++) term_putc(' ');
+        
+        term_print("- ");
         term_print(commands[i].description);
         term_print("\n");
     }
+    term_print("\n");
+    return 0;
+}
+
+int cmd_calc(int argc, char* argv[]) {
+    if (argc < 4) {
+        shell_print_warning("Usage: calc <num1> <op> <num2>\n");
+        return -1;
+    }
+    
+    int num1 = atoi(argv[1]);
+    int num2 = atoi(argv[3]);
+    char op = argv[2][0];
+    int result = 0;
+    
+    switch (op) {
+        case '+': result = num1 + num2; break;
+        case '-': result = num1 - num2; break;
+        case '*': result = num1 * num2; break;
+        case '/': 
+            if (num2 == 0) {
+                shell_print_error("Error: Division by zero\n");
+                return -1;
+            }
+            result = num1 / num2; 
+            break;
+        default:
+            shell_print_error("Invalid operator. Use +, -, *, /\n");
+            return -1;
+    }
+    
+    term_print("Result: ");
+    
+    // Print result
+    char num_str[12];
+    int num = result;
+    int pos = 0;
+    int is_neg = 0;
+    
+    if (num < 0) {
+        is_neg = 1;
+        num = -num;
+    }
+    
+    if (num == 0) {
+        num_str[pos++] = '0';
+    } else {
+        while (num > 0) {
+            num_str[pos++] = '0' + (num % 10);
+            num /= 10;
+        }
+    }
+    
+    if (is_neg) term_putc('-');
+    
+    for (int i = pos - 1; i >= 0; i--) {
+        term_putc(num_str[i]);
+    }
+    term_print("\n");
+    
     return 0;
 }
 
@@ -891,7 +997,7 @@ int cmd_setcolor(int argc, char* argv[]) {
     // Immediately update all visible characters on screen with new colors
     // Update background for all cells, and foreground if it was using old default
     uint8_t old_fg = old_color & 0x0F;
-    uint8_t old_bg = (old_color >> 4) & 0x0F;
+    // uint8_t old_bg = (old_color >> 4) & 0x0F; // Unused
     uint8_t new_fg = new_color & 0x0F;
     uint8_t new_bg = (new_color >> 4) & 0x0F;
     
@@ -920,7 +1026,7 @@ int cmd_setcolor(int argc, char* argv[]) {
     
     // Save current position
     int saved_row = term_get_row();
-    int saved_col = term_get_col();
+    // int saved_col = term_get_col(); // Unused
     
     // Print success message
     shell_print_info("Default console color updated.\n");

@@ -245,5 +245,16 @@ void kernel_main(unsigned int mb_magic, unsigned int mb_info) {
     extern void enable_interrupts();
     extern void halt_cpu();
     enable_interrupts();
-    for (;;) { halt_cpu(); }
+    
+    extern volatile void (*g_main_loop_hook)(void);
+    
+    for (;;) {
+        if (g_main_loop_hook) {
+            g_main_loop_hook();
+        }
+        halt_cpu();
+    }
 }
+
+// Global hook for main loop
+volatile void (*g_main_loop_hook)(void) = 0;

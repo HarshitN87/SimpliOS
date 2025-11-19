@@ -39,6 +39,11 @@
 - Command handlers call into ramdisk helpers, the terminal, or the scheduler to display information.
 - The shell state machine keeps track of the current line buffer, cursor, and echo settings so future extensions can hook into it.
 
+## Game Loop Hook
+- `kernel/kernel.c` exposes a `g_main_loop_hook` function pointer.
+- This allows applications like `breakout` to hook into the main kernel loop (running in the idle task context) instead of blocking inside an interrupt handler.
+- `kernel/breakout.c` implements the game logic, rendering, and input handling, using this hook for smooth animation.
+
 ## Scheduler
 - `kernel/scheduler.c` provides a round-robin scheduler with a circular ready queue backed by `pcb_t` entries from `kernel/pcb.c`.
 - Each PCB tracks PID, name, priority, runtime stats, and saved register context to allow future task switching.
