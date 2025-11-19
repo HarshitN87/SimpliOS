@@ -1,246 +1,134 @@
 # SimpliOS - A Simple, Educational Operating System
 
-SimpliOS is a tiny 32-bit x86 educational kernel that boots via Multiboot, sets up protected mode descriptor tables (GDT/IDT), remaps and handles hardware interrupts (timer and keyboard), and enables basic paging. It renders directly to the VGA text buffer and is designed to be easy to read and extend.
+SimpliOS is a tiny, yet feature-rich 32-bit x86 educational kernel designed to demonstrate the core concepts of operating system development. It boots via Multiboot, sets up a protected mode environment, handles hardware interrupts, manages memory, and provides a functional userspace environment with a shell and interactive applications.
 
-## Features (current)
-- Multiboot-compliant boot path with a flat 32-bit GDT (null, kernel code, kernel data) and IDT coverage for CPU exceptions plus PIC-remapped IRQs
-- Hardware drivers for PIT (100 Hz heartbeat) and PS/2 keyboard with printable ASCII, Shift state tracking, newline/backspace editing, and prompt rendering
-- VGA text console that writes directly to 0xB8000, clears or rewinds when the buffer fills, and is reused by every subsystem
-- Physical memory manager stub and identity-mapped paging over the first 4 MiB to validate paging enablement
-- In-memory ramdisk filesystem with fixed metadata, per-file attributes, sample files, and helpers for listing, reading, writing, creating, and deleting
-- Interactive shell with built-in commands (`help`, `clear`, `ls`, `cat`, `echo`, `create`, `delete`, `write`, `read`, `status`, `calc`, `breakout`) and simple line editing
-- Colorized VGA console with a cyan prompt, green/yellow status messages, red errors, and a `setcolor` command to customize default colors
-- **Breakout Game**: A fully functional Breakout game with 3 lives, scoring, and adjustable speed.
-- **Calculator**: A simple command-line calculator supporting basic arithmetic operations.
-- Round-robin scheduler with PCBs, ready queue management, periodic tick accounting, and sample Idle/Counter/Printer tasks to visualize scheduling
-- Minimal boot assembly and C entrypoint that wires every subsystem together
+This project is built from the ground up to be readable, extendable, and educational. It avoids complex abstractions in favor of clear, direct hardware manipulation, making it an ideal starting point for learning about OS internals.
 
-## Repository layout
-```
-boot/               # Multiboot entry and assembly helpers (lgdt/lidt/ISRs)
-kernel/             # Kernel C code (GDT/IDT/IRQ, PMM stub, paging, VGA, Breakout)
-linker.ld           # Linker script (places kernel at 1 MiB)
-Makefile            # Build ISO with i686-elf toolchain and GRUB
-```
+## 🌟 Key Features
 
-Key files to explore:
-- `boot/boot.s`: Multiboot header, stack, calls `kernel_main(magic, info)`
-- `kernel/gdt.c,h` and `boot/gdt_flush.s`: Flat segmentation descriptors, `lgdt`
-- `kernel/idt.c,h` and `boot/idt_flush.s`: Interrupt descriptor table, `lidt`
-- `boot/isr_stubs.s`: CPU exception and IRQ stubs that route to C handlers
-- `kernel/irq.c,h` and `kernel/io.h`: PIC remap, PIT init, keyboard handler
-- `kernel/paging.c`: Identity maps first 4 MiB and enables paging
-- `kernel/kernel.c`: VGA text output, initialization sequence, GDT/IDT dump
-- `kernel/breakout.c`: Breakout game implementation and game loop hook
+### Core Kernel
+- **Multiboot Compliant**: Boots using GRUB or any Multiboot-compliant bootloader.
+- **Protected Mode**: Runs in 32-bit protected mode with a flat Global Descriptor Table (GDT).
+- **Interrupt Handling**: Full Interrupt Descriptor Table (IDT) for CPU exceptions and hardware interrupts.
+- **Programmable Interrupt Controller (PIC)**: Remapped IRQs to avoid conflicts with CPU exceptions.
+- **System Timer**: Programmable Interval Timer (PIT) configured for 100 Hz system tick.
+- **Memory Management**:
+  - Physical Memory Manager (PMM) stub for frame allocation.
+  - Paging enabled with identity mapping for the first 4 MiB.
 
-## Quick start
-You need the cross toolchain and GRUB tools. The easiest path on Windows is WSL.
+### Drivers & Hardware
+- **VGA Text Mode**: Direct memory access to 0xB8000 for fast text rendering (80x25).
+- **Keyboard Driver**: PS/2 keyboard driver with support for:
+  - Printable ASCII characters.
+  - Shift state tracking.
+  - Special keys (Enter, Backspace, Arrows).
+  - Scancode set 1 decoding.
 
-### Dependencies
-- i686-elf-gcc, i686-elf-ld, i686-elf-objcopy
-- grub-mkrescue, xorriso
-- qemu-system-i386
+### Filesystem & Storage
+- **Ramdisk Filesystem**: A custom in-memory filesystem.
+  - Flat file structure.
+  - Support for file attributes (size, type, permissions).
+  - Operations: Create, Read, Write, Delete, List.
+  - Pre-loaded sample files (`welcome.txt`, `readme.txt`, `version.txt`).
 
-### Build and run
-```bash
-make clean
-make
-make run
-```
+### Process Management
+- **Round-Robin Scheduler**: Preemptive multitasking.
+- **Process Control Blocks (PCB)**: Tracks PID, name, state, priority, and CPU context.
+- **Context Switching**: Saves and restores register state (EAX, EBX, ECX, EDX, ESI, EDI, EBP, ESP, EIP, EFLAGS).
+- **System Tasks**: Background tasks simulating OS services (`kernel_init`, `vfs`, `shell`, `syslog`).
 
-This produces `build/simplios.iso` and boots it in QEMU.
+### User Experience
+- **Interactive Shell**: A robust command-line interface.
+  - Command history (Up/Down arrows).
+  - Line editing (Left/Right arrows, Backspace).
+  - Tab completion (basic).
+  - Colorized output (Prompt, Info, Warnings, Errors).
+- **Built-in Commands**:
+  - `help`: List available commands.
+  - `clear`: Clear the screen.
+  - `ls`: List files.
+  - `cat`/`read`: View file contents.
+  - `create`/`delete`: Manage files.
+  - `write`: Edit files.
+  - `status`: View system resource usage.
+  - `ps`: List active processes.
+  - `uptime`: Show system uptime.
+  - `setcolor`: Customize terminal colors.
+  - `calc`: Basic arithmetic calculator.
+  - `breakout`: Play the Breakout game.
 
-### Expected output
-- Welcome banner, init log, and GDT dump (base/limit and entries 0..2)
-- Ramdisk + scheduler init logs showing sample tasks
-- Periodic dots from the timer, plus optional task trace messages when the demo processes run
-- Characters you type echoed by the keyboard driver and shell prompt (`simplios> `)
-- Colored prompt, info (green) and warning (yellow) messages, plus red error text from the shell
-- If you see no keyboard output, ensure the QEMU window has focus.
+### Applications
+- **Breakout Game**: A fully functional arcade game running directly on the kernel.
+  - 60 FPS smooth rendering using a main loop hook.
+  - Collision detection (Walls, Paddle, Bricks).
+  - Scoring and Lives system.
+  - Interactive controls.
 
-### Shell overview
-- Prompt: `simplios> `
-- Commands accept space-delimited arguments; `Backspace` edits the current line.
-- Available commands:
-  - `help`: list commands
-  - `clear`: clear the VGA console
-  - `ls`: show files stored in the ramdisk
-  - `cat <file>` / `read <file>`: print file contents
-  - `create <file>` / `delete <file>`: manage files
-  - `write <file> <text...>`: overwrite a file with the provided text
-  - `echo <text...>`: print arguments back to the terminal
-  - `status`: display ramdisk usage plus scheduler tick/process state
-  - `setcolor <fg> [bg]`: change default console colors using named palette values
-  - `calc <num1> <op> <num2>`: simple calculator (+, -, *, /)
-  - `breakout`: play the Breakout game (controls: Left/Right arrows, Space to start, Q to quit)
+## 📂 Repository Structure
 
-
-## Documentation
-See the `docs/` folder for deeper dives:
-- `docs/architecture.md` – high-level architecture and boot flow
-- `docs/build.md` – toolchain setup, build, run, debugging tips
-- `docs/interrupts.md` – GDT/IDT, ISRs/IRQs, PIC remap, PIT/keyboard
-- `docs/memory.md` – PMM design notes and paging overview
-- `docs/keyboard.md` – PS/2 scancode set and ASCII mapping
-- `docs/roadmap.md` – planned work and stretch goals
-- `docs/contributing.md` – how to contribute
-
-## License
-Educational use encouraged. See `docs/contributing.md` for guidance.
-
-Welcome to **SimpliOS**! This project is an educational 32-bit monolithic kernel built from the ground up to demonstrate core operating system concepts. It is designed as a learning tool for those interested in low-level systems programming.
-
-This guide provides all the necessary steps to set up the development environment, build the cross-compiler, and run the operating system in the QEMU emulator.
-
----
-
-## 🚀 Getting Started
-
-These instructions guide you through setting up the project on a **Windows machine** using the **Windows Subsystem for Linux (WSL)**.
-
----
-
-### 1. Prerequisites: Setting up the Environment
-
-The build tools for this project are designed for a Linux environment. The easiest way to get this on Windows is by installing WSL.
-
-#### A. Install Windows Subsystem for Linux (WSL)
-
-1. Open **PowerShell** as an Administrator.
-2. Run the following command to install WSL and the default Ubuntu distribution:
-
-```bash
-wsl --install
+```text
+SimpliOS/
+├── boot/               # Bootloader assembly and configuration
+│   ├── boot.s          # Multiboot header and entry point
+│   ├── gdt_flush.s     # GDT loading assembly
+│   ├── idt_flush.s     # IDT loading assembly
+│   └── isr_stubs.s     # Interrupt Service Routines stubs
+├── kernel/             # Core kernel source code
+│   ├── kernel.c        # Kernel entry and initialization
+│   ├── gdt.c/h         # Global Descriptor Table management
+│   ├── idt.c/h         # Interrupt Descriptor Table management
+│   ├── irq.c/h         # Interrupt Request handling
+│   ├── paging.c/h      # Memory paging
+│   ├── pmm.c/h         # Physical Memory Manager
+│   ├── scheduler.c/h   # Process scheduler
+│   ├── ramdisk.c/h     # In-memory filesystem
+│   ├── shell.c/h       # Command-line interface
+│   ├── breakout.c/h    # Breakout game application
+│   └── ...
+├── docs/               # Detailed documentation
+├── build/              # Build artifacts (ISO, ELF)
+├── linker.ld           # Linker script
+└── Makefile            # Build automation
 ```
 
-3. Restart your computer. After restart, an Ubuntu terminal will open to complete the installation. You will need to create a username and password.
+## 🚀 Quick Start
 
-#### B. Install Build Dependencies
+### Prerequisites
+You need a cross-compiler toolchain targeting `i686-elf`. The recommended environment is **WSL (Windows Subsystem for Linux)** or a native Linux distribution.
 
-Once WSL/Ubuntu is running, open the Ubuntu terminal and run:
-
+**Install Dependencies (Ubuntu/Debian/WSL):**
 ```bash
 sudo apt-get update
 sudo apt-get install build-essential bison flex libgmp-dev libmpc-dev libmpfr-dev texinfo grub-pc-bin grub-common xorriso qemu-system-x86
 ```
 
----
+### Build & Run
+1. **Clean** the build directory:
+   ```bash
+   make clean
+   ```
+2. **Compile** the kernel and build the ISO:
+   ```bash
+   make
+   ```
+3. **Run** in QEMU:
+   ```bash
+   make run
+   ```
 
-### 2. Building the i686-elf Cross-Compiler
+## 📚 Documentation
+For deep dives into specific subsystems, check the `docs/` directory:
 
-To compile code for our 32-bit target OS, we need a **cross-compiler**.
+- [**Architecture**](docs/architecture.md): Boot flow, memory map, and kernel design.
+- [**Build Guide**](docs/build.md): Detailed toolchain setup and build instructions.
+- [**Features**](docs/features.md): User manual for the Shell, Game, and Tools.
+- [**API Reference**](docs/api.md): Internal kernel APIs for developers.
 
-#### A. Set Up Environment Variables
+## 🤝 Contributing
+This is an educational project, and contributions are welcome! Whether it's fixing a bug, adding a new shell command, or implementing a new driver, feel free to open a pull request.
 
-```bash
-export PREFIX="$HOME/opt/cross"
-export TARGET=i686-elf
-export PATH="$PREFIX/bin:$PATH"
-```
+## 📄 License
+This project is open-source and available for educational use.
 
-#### B. Download and Build Binutils
-
-Binutils contains the assembler and linker.
-
-```bash
-# Create a directory for source code
-mkdir -p $HOME/src
-cd $HOME/src
-
-# Download and extract Binutils 2.42
-wget https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.xz
-tar -xf binutils-2.42.tar.xz
-
-# Configure and build
-cd binutils-2.42
-mkdir build-binutils
-cd build-binutils
-../configure --target=$TARGET --prefix="$PREFIX" --with-sysroot --disable-nls --disable-werror
-make
-sudo make install
-```
-
-#### C. Download and Build GCC
-
-This step builds the C compiler. **Note:** This process can take 15–45 minutes.
-
-```bash
-# Navigate back to the source directory
-cd $HOME/src
-
-# Download and extract GCC 14.1.0
-wget https://ftp.gnu.org/gnu/gcc/gcc-14.1.0/gcc-14.1.0.tar.gz
-tar -xf gcc-14.1.0.tar.gz
-
-# Configure and build
-cd gcc-14.1.0
-mkdir build-gcc
-cd build-gcc
-../configure --target=$TARGET --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
-make all-gcc
-make all-target-libgcc
-sudo make install-gcc
-sudo make install-target-libgcc
-```
-
-#### D. Make the Compiler Path Permanent
-
-```bash
-echo 'export PATH="$HOME/opt/cross/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
----
-
-### 3. Building and Running SimpliOS
-
-With the environment fully configured, you can now build and run the OS.
-
-1. Navigate to the project directory (WSL path format: `/mnt/c/...`):
-
-```bash
-cd /mnt/c/Users/YourUser/simplios
-```
-
-2. Clean previous builds (optional):
-
-```bash
-make clean
-```
-
-3. Build and run the operating system:
-
-```bash
-make run
-```
-
-A **QEMU window** should appear, booting your OS and displaying the welcome message.
-
----
-
-## 📂 Project Structure
-
-```text
-boot/
-└── boot.s
-kernel/
-└── kernel.c
-linker.ld
-Makefile
-```
-
----
-
-## ❔ Troubleshooting
-
-- **make: i686-elf-gcc: No such file or directory**  
-  The cross-compiler is not in your `PATH`. Run `source ~/.bashrc` to fix it for the current session.
-
-- **Assembly Errors in `boot.s`**  
-  If you see errors like `Error: no such instruction:`, it means the assembler is misinterpreting the syntax. Ensure the first line of `src/boot.s` is:
-
-```asm
-.intel_syntax noprefix
-```
 
 
